@@ -9,6 +9,9 @@ python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
 # Then put your real OPENAI_API_KEY (or just leave it blank to use Ollama)
+# BEFORE using a paid key: set a hard monthly spending cap in the provider's
+# billing console (see the day 3 lesson's "Required Setup Step") — $5 covers
+# this whole module.
 ```
 
 The starter targets the **OpenAI SDK** because that same SDK also talks to Ollama (via `base_url="http://localhost:11434/v1"`) so you can develop for free locally.  If you'd rather use the Anthropic SDK, that's fine — adapt the calls.

@@ -19,13 +19,13 @@ def get_client():
     api_key = os.getenv("OPENAI_API_KEY")
 
     if api_key:
-        return OpenAI(), "gpt-4o-mini"
+        return OpenAI(), "gpt-5.6-luna"
     else:
         # Fall back to Ollama (local, free)
         return OpenAI(
             base_url="http://localhost:11434/v1",
             api_key="unused"
-        ), "llama3"
+        ), "qwen3:8b"
 
 
 def call_llm(client, model, messages):
