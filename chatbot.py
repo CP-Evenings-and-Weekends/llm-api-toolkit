@@ -8,46 +8,50 @@ See the README for details.
 """
 
 import os
+import requests
 from dotenv import load_dotenv
-from openai import OpenAI
+from requests.exceptions import Timeout, ConnectionError, HTTPError
 
 load_dotenv()
 
-
-def get_client():
-    """Create an OpenAI client. Uses Ollama if no API key is set."""
-    api_key = os.getenv("OPENAI_API_KEY")
-
-    if api_key:
-        return OpenAI(), "gpt-5.6-luna"
-    else:
-        # Fall back to Ollama (local, free)
-        return OpenAI(
-            base_url="http://localhost:11434/v1",
-            api_key="unused"
-        ), "qwen3:8b"
+LLM_API_URL = os.getenv("LLM_API_URL", "http://localhost:11434/v1/chat/completions")
+LLM_API_KEY = os.getenv("LLM_API_KEY", "")
+LLM_MODEL = os.getenv("LLM_MODEL", "llama3.2")
 
 
-def call_llm(client, model, messages):
-    """Call an LLM and return the response text."""
+def call_llm(messages):
+    """Send the conversation to the LLM and return the reply text."""
+    headers = {"Content-Type": "application/json"}
+
+    if LLM_API_KEY:
+        headers["Authorization"] = f"Bearer {LLM_API_KEY}"
+
+    payload = {
+        "model": LLM_MODEL,
+        "messages": messages,
+        "temperature": 0.7,
+        "max_tokens": 1024,
+    }
+
     try:
-        response = client.chat.completions.create(
-            model=model,
-            messages=messages,
-            temperature=0.7,
-            max_tokens=1024
-        )
-        return response.choices[0].message.content
-    except Exception as e:
-        return f"Error communicating with LLM: {e}"
+        response = requests.post(LLM_API_URL, headers=headers, json=payload, timeout=60)
+        response.raise_for_status()
+        return response.json()["choices"][0]["message"]["content"]
+
+    except Timeout:
+        return "The request timed out. Try again."
+    except ConnectionError:
+        return "Could not reach the LLM. Is Ollama running?"
+    except HTTPError as e:
+        return f"API error: HTTP {e.response.status_code}"
+    except (KeyError, IndexError):
+        return "Unexpected response format from the API."
 
 
 def main():
     print("=== Terminal Chatbot ===")
+    print(f"Using model: {LLM_MODEL}")
     print("Type 'quit' to exit.\n")
-
-    client, model = get_client()
-    print(f"Using model: {model}\n")
 
     system_prompt = "You are a helpful programming assistant. Be concise and practical."
 
@@ -67,16 +71,16 @@ def main():
 
         # TODO: handle /clear and /system here, BEFORE the API call.
 
-        # Add user message to conversation history
+        # Add the user's message to the conversation history
         conversation.append({"role": "user", "content": user_input})
 
-        # Call the LLM with full conversation history
-        response = call_llm(client, model, conversation)
+        # Send the ENTIRE history, not just the latest message
+        reply = call_llm(conversation)
 
-        # Add assistant response to conversation history
-        conversation.append({"role": "assistant", "content": response})
+        # Add the assistant's reply to the history too
+        conversation.append({"role": "assistant", "content": reply})
 
-        print(f"\nAssistant: {response}\n")
+        print(f"\nAssistant: {reply}\n")
 
 
 if __name__ == "__main__":
