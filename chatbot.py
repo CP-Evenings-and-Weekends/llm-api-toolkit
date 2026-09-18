@@ -55,9 +55,7 @@ def main():
 
     system_prompt = "You are a helpful programming assistant. Be concise and practical."
 
-    conversation = [
-        {"role": "system", "content": system_prompt}
-    ]
+    conversation = [{"role": "system", "content": system_prompt}]
 
     while True:
         user_input = input("You: ").strip()
@@ -69,7 +67,16 @@ def main():
             print("Goodbye!")
             break
 
-        # TODO: handle /clear and /system here, BEFORE the API call.
+        if user_input == "/clear":
+            conversation = [{"role": "system", "content": system_prompt}]
+            print("(conversation cleared)\n")
+            continue
+
+        if user_input.startswith("/system "):
+            system_prompt = user_input[len("/system ") :]
+            conversation = [{"role": "system", "content": system_prompt}]
+            print(f"(system prompt updated to: {system_prompt})\n")
+            continue
 
         # Add the user's message to the conversation history
         conversation.append({"role": "user", "content": user_input})
